@@ -1,0 +1,51 @@
+name: Deploy to GCP with Terraform
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Authenticate with GCP
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+    - name: Configure Docker to use GCP Artifact Registry
+      run: gcloud auth configure-docker
+
+    - name: Build Docker image
+      run: |
+        docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/product-matching-app:latest ./api
+
+    - name: Push Docker image to GCP Artifact Registry
+      run: |
+        docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/product-matching-app:latest
+
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.0
+
+    - name: Initialize Terraform
+      run: terraform init
+      working-directory: ./infra
+
+    - name: Validate Terraform
+      run: terraform validate
+      working-directory: ./infra
+
+    - name: Plan Terraform
+      run: terraform plan -out=tfplan
+      working-directory: ./infra
+
+    - name: Apply Terraform
+      run: terraform apply -auto-approve tfplan
+      working-directory: ./infra
