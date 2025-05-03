@@ -3,11 +3,11 @@ FROM node:18 AS frontend-builder
 
 WORKDIR /frontend
 
-# Copy frontend files and install dependencies
-COPY ./frontend/package.json ./frontend/package.json ./
+# Copy only the package.json and package-lock.json for dependency installation
+COPY ./frontend/package.json ./frontend/package-lock.json ./
 RUN npm install
 
-# Build the frontend
+# Copy the rest of the frontend files and build the frontend
 COPY ./frontend ./
 RUN npm run build
 
