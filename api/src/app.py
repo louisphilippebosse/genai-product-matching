@@ -3,8 +3,6 @@ from flask import Flask, send_from_directory, request, jsonify
 from data_processing import process_uploaded_file
 from matching_engine import match_products_with_vector_search
 from utils import load_internal_products_from_gcs  # Import the utility function
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import FAISS
 
 # Set static folder for serving frontend files
 static_path = os.path.join(os.path.dirname(__file__), "../frontend/public")
@@ -15,10 +13,6 @@ PROJECT_ID = "genai-product-matching"  # Replace with your GCP project ID
 BUCKET_NAME = "genai-product-matching-data"  # Replace with your GCS bucket name
 FILE_NAME = "Data_Internal_cleaned.csv"  # Replace with your file name in GCS
 internal_products = load_internal_products_from_gcs(PROJECT_ID ,BUCKET_NAME, FILE_NAME)
-
-# Initialize vector store
-embeddings = OpenAIEmbeddings()
-vector_store = FAISS.from_texts(internal_products, embeddings)
 
 # Serve index.html for root path
 @app.route("/")
@@ -50,12 +44,19 @@ def match_product():
         df = process_uploaded_file(file)
         external_products = df["text"].tolist()
 
+        # Vertex AI Matching Engine parameters
+        vertex_ai_endpoint = "projects/genai-product-matching/locations/northamerica-northeast1/indexEndpoints/product-matching-endpoint-id"
+        deployed_index_id = "product-matching-deployment"
+        project_id = "genai-product-matching"
+        region = "northamerica-northeast1"
+
         # Call the matching engine
         results = match_products_with_vector_search(
-            internal_products=internal_products,
             external_products=external_products,
-            vector_store=vector_store,
-            reasoning_chain=reasoning_chain
+            vertex_ai_endpoint=vertex_ai_endpoint,
+            deployed_index_id=deployed_index_id,
+            project_id=project_id,
+            region=region
         )
 
         return jsonify(results)

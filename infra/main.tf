@@ -20,11 +20,6 @@ resource "google_project_iam_member" "cloud_run_service_account_vertex_ai_user" 
   role    = "roles/aiplatform.user"
   member  = "serviceAccount:${google_service_account.cloud_run_service_account.email}"
 }
-resource "google_project_iam_member" "cloud_run_service_account_vertex_ai_indexer" {
-  project = var.project_id
-  role    = "roles/aiplatform.indexer"
-  member  = "serviceAccount:${google_service_account.cloud_run_service_account.email}"
-}
 
 resource "google_artifact_registry_repository" "product_matching_app" {
   repository_id = "product-matching-app"
@@ -34,6 +29,7 @@ resource "google_artifact_registry_repository" "product_matching_app" {
 }
 
 resource "google_cloud_run_v2_service" "flask_app" {
+  deletion_protection = false  # Ensure deletion protection is disabled
   depends_on = [
     google_artifact_registry_repository.product_matching_app,
     google_service_account.cloud_run_service_account
@@ -100,7 +96,6 @@ resource "google_storage_bucket" "data_bucket" {
   }
 }
 
-
 # Create the Vertex AI Index
 resource "google_vertex_ai_index" "product_matching_index" {
   display_name = "product-matching-index"
@@ -142,5 +137,5 @@ resource "google_vertex_ai_index_endpoint_deployed_index" "product_matching_depl
 
   index_endpoint    = google_vertex_ai_index_endpoint.product_matching_endpoint.id
   index             = google_vertex_ai_index.product_matching_index.id
-  deployed_index_id = "product-matching-deployment"
+  deployed_index_id = "product_matching_deployment"  # Use a valid ID
 }

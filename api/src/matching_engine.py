@@ -1,11 +1,34 @@
 from google.cloud import aiplatform
+from google.genai import Client
+from google.genai.types import EmbeddingOptions
 
-def match_products_with_vector_search(external_products, vertex_ai_endpoint, project_id, region):
+# Initialize the GenAI client for embedding generation
+genai_client = Client()
+
+def generate_embedding(text):
+    """
+    Generate an embedding for the given text using a pre-trained embedding model.
+    Args:
+        text (str): The text to generate an embedding for.
+
+    Returns:
+        list: A list of floats representing the embedding vector.
+    """
+    # Generate embedding using Google's GenAI embedding model
+    response = genai_client.get_embeddings(
+        model="text-embedding-005",
+        options=EmbeddingOptions(input_texts=[text])
+    )
+    return response.embeddings[0].values  # Return the embedding vector
+
+
+def match_products_with_vector_search(external_products, vertex_ai_endpoint, deployed_index_id, project_id, region):
     """
     Match external products to internal products using Vertex AI Matching Engine.
     Args:
         external_products (list): List of external product names.
         vertex_ai_endpoint (str): Vertex AI Matching Engine endpoint.
+        deployed_index_id (str): Deployed index ID for the Matching Engine.
         project_id (str): Google Cloud project ID.
         region (str): Google Cloud region.
 
@@ -21,12 +44,12 @@ def match_products_with_vector_search(external_products, vertex_ai_endpoint, pro
     index_endpoint = aiplatform.MatchingEngineIndexEndpoint(vertex_ai_endpoint)
 
     for external in external_products:
-        # Generate embedding for the external product (use your embedding model)
-        external_embedding = generate_embedding(external)  # Replace with your embedding logic
+        # Generate embedding for the external product
+        external_embedding = generate_embedding(external)
 
         # Query the Vertex AI Matching Engine
         response = index_endpoint.match(
-            deployed_index_id="product-matching-deployment",
+            deployed_index_id=deployed_index_id,
             queries=[external_embedding],
             num_neighbors=5,
         )
