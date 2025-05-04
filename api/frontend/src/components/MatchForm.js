@@ -38,13 +38,22 @@ function MatchForm() {
     };
 
     return (
-        <div>
+        <div className="p-4 border rounded shadow bg-white" style={{ maxWidth: '400px', width: '100%' }}>
             <form onSubmit={handleSubmit}>
-                <input type="file" name="external" onChange={handleFileChange} />
-                <button type="submit">Match</button>
+                <div className="mb-3">
+                    <input
+                        type="file"
+                        name="external"
+                        className="form-control"
+                        onChange={handleFileChange}
+                    />
+                </div>
+                <button type="submit" className="btn btn-primary w-100">
+                    Match
+                </button>
             </form>
             {matchedProduct && (
-                <div>
+                <div className="mt-4">
                     <h3>Matched Product:</h3>
                     <p>{matchedProduct}</p>
                 </div>

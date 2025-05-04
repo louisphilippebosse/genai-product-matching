@@ -2,7 +2,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
-  entry: './src/App.js',
+  entry: './src/index.js',
   output: {
     path: path.resolve(__dirname, 'public'),
     filename: 'bundle.js',
@@ -17,10 +17,15 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, 'public', 'index.html'),
+      filename: 'index.html', // Ensures the output file is named index.html
       inject: 'body',
     }),
   ],
   devServer: {
     historyApiFallback: true,
+    static: {
+      directory: path.resolve(__dirname, 'public'),
+    },
+    port: 8081,
   },
 };
