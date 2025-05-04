@@ -2,6 +2,7 @@ flask
 google-cloud-bigquery
 pandas
 google-cloud-storage
+langchain_community
 langchain
 openai
 faiss-cpu
