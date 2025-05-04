@@ -29,7 +29,7 @@ resource "google_artifact_registry_repository" "product_matching_app" {
 }
 
 resource "google_cloud_run_v2_service" "flask_app" {
-  deletion_protection = false  # Ensure deletion protection is disabled
+
   depends_on = [
     google_artifact_registry_repository.product_matching_app,
     google_service_account.cloud_run_service_account

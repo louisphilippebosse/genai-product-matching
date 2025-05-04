@@ -1,9 +1,8 @@
-from google.cloud import aiplatform
-from google.genai import Client
-from google.genai.types import EmbeddingOptions
+from google import genai
+from google.genai.types import EmbedContentConfig
 
 # Initialize the GenAI client for embedding generation
-genai_client = Client()
+genai_client = genai.Client()
 
 def generate_embedding(text):
     """
@@ -15,9 +14,13 @@ def generate_embedding(text):
         list: A list of floats representing the embedding vector.
     """
     # Generate embedding using Google's GenAI embedding model
-    response = genai_client.get_embeddings(
+    response = genai_client.models.embed_content(
         model="text-embedding-005",
-        options=EmbeddingOptions(input_texts=[text])
+        contents=[text],
+        config=EmbedContentConfig(
+            task_type="SEMANTIC_SIMILARITY",  # Task type for semantic similarity
+            output_dimensionality=768  # Optional: Specify the dimensionality of the embedding
+        )
     )
     return response.embeddings[0].values  # Return the embedding vector
 
