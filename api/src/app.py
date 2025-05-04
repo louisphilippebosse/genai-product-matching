@@ -24,15 +24,27 @@ def serve_static_or_index(path):
 def api_home():
     return "Welcome to the Product Matching API!"
 
-# API endpoint for matching logic
 @app.route("/api/match", methods=["POST"])
 def match_product():
     file = request.files.get("external")
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
-    matched_product = "Example Matched Product"  # Replace with actual logic
-    return jsonify({"matchedProduct": matched_product})
+    # Dummy data for the uploaded product (replace with actual parsing logic)
+    uploaded_product = "Uploaded Product X"  # Replace with logic to extract product info from the file
+
+    # Example logic for determining match status
+    matched_products = [{"uploaded": uploaded_product, "matchedWith": "Product A"}]  # Replace with actual logic
+    uncertain_matches = [
+        {"uploaded": uploaded_product, "possibleMatches": ["Product B", "Product C", "Product D"]}
+    ]  # Replace with actual logic
+    no_matches = [{"uploaded": uploaded_product}]  # Replace with actual logic
+
+    return jsonify({
+        "matchedProducts": matched_products,
+        "uncertainMatches": uncertain_matches,
+        "noMatches": no_matches
+    })
 
 # Main entrypoint
 if __name__ == "__main__":

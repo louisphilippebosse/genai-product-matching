@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 function MatchForm() {
     const [file, setFile] = useState(null);
-    const [matchedProduct, setMatchedProduct] = useState(null);
+    const [result, setResult] = useState(null);
 
     const handleFileChange = (event) => {
         setFile(event.target.files[0]);
@@ -30,7 +30,7 @@ function MatchForm() {
             }
 
             const result = await response.json();
-            setMatchedProduct(result.matchedProduct);
+            setResult(result);
         } catch (error) {
             console.error("Error:", error);
             alert("An error occurred while matching the product.");
@@ -52,10 +52,49 @@ function MatchForm() {
                     Match
                 </button>
             </form>
-            {matchedProduct && (
+            {result && (
                 <div className="mt-4">
-                    <h3>Matched Product:</h3>
-                    <p>{matchedProduct}</p>
+                    {result.matchedProducts.length > 0 && (
+                        <>
+                            <h3>Matched Products:</h3>
+                            <ul>
+                                {result.matchedProducts.map((product, index) => (
+                                    <li key={index}>
+                                        Uploaded: {product.uploaded}, Matched With: {product.matchedWith}
+                                    </li>
+                                ))}
+                            </ul>
+                        </>
+                    )}
+                    {result.uncertainMatches.length > 0 && (
+                        <>
+                            <h3>Uncertain Matches:</h3>
+                            <ul>
+                                {result.uncertainMatches.map((product, index) => (
+                                    <li key={index}>
+                                        Uploaded: {product.uploaded}
+                                        <ul>
+                                            {product.possibleMatches.map((match, matchIndex) => (
+                                                <li key={matchIndex}>Possible Match: {match}</li>
+                                            ))}
+                                        </ul>
+                                    </li>
+                                ))}
+                            </ul>
+                        </>
+                    )}
+                    {result.noMatches.length > 0 && (
+                        <>
+                            <h3>No Matches Found:</h3>
+                            <ul>
+                                {result.noMatches.map((product, index) => (
+                                    <li key={index}>
+                                        Uploaded: {product.uploaded}
+                                    </li>
+                                ))}
+                            </ul>
+                        </>
+                    )}
                 </div>
             )}
         </div>
