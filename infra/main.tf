@@ -3,6 +3,12 @@ resource "google_service_account" "cloud_run_service_account" {
   display_name = "Service Account for Cloud Run"
 }
 
+resource "google_project_iam_member" "cloud_run_service_account_artifact_reader" {
+  project = var.project_id
+  role    = "roles/artifactregistry.reader"
+  member  = "serviceAccount:${google_service_account.cloud_run_service_account.email}"
+}
+
 resource "google_artifact_registry_repository" "product_matching_app" {
   repository_id = "product-matching-app"
   format        = "DOCKER"
@@ -11,7 +17,10 @@ resource "google_artifact_registry_repository" "product_matching_app" {
 }
 
 resource "google_cloud_run_v2_service" "flask_app" {
-  provider = google-beta
+  depends_on = [
+    google_artifact_registry_repository.product_matching_app,
+    google_service_account.cloud_run_service_account
+  ]
   name     = "product-matching-app"
   location = var.region
   ingress  = "INGRESS_TRAFFIC_ALL"

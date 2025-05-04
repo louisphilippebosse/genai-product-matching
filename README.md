@@ -47,3 +47,11 @@ Good luck!
 # Step do do the project : 
 create a venv.
 create a service account
+add the following role : 
+
+
+make sure the following APIs are enabled:
+```bash
+gcloud services enable run.googleapis.com --project=genai-product-matching
+gcloud services enable iam.googleapis.com --project=genai-product-matching
+gcloud services enable aiplatform.googleapis.com --project=genai-product-matching
