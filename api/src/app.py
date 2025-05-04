@@ -65,7 +65,7 @@ def match_product():
 
         # Vertex AI Matching Engine parameters
         vertex_ai_endpoint = "projects/genai-product-matching/locations/northamerica-northeast1/indexEndpoints/product-matching-endpoint-id"
-        deployed_index_id = "product-matching-deployment"
+        deployed_index_id = "product_matching_deployment"
         project_id = "genai-product-matching"
         region = "northamerica-northeast1"
 
