@@ -1,17 +1,13 @@
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import FAISS
-from langchain.chains import LLMChain
-from langchain.prompts import PromptTemplate
-from langchain.llms import OpenAI
+from google.cloud import aiplatform
 
-def match_products_with_vector_search(internal_products, external_products, vector_store, reasoning_chain):
+def match_products_with_vector_search(external_products, vertex_ai_endpoint, project_id, region):
     """
-    Match external products to internal products using exact matching, vector search, and reasoning.
+    Match external products to internal products using Vertex AI Matching Engine.
     Args:
-        internal_products (list): List of internal product names.
         external_products (list): List of external product names.
-        vector_store (FAISS): Vector store containing internal product embeddings.
-        reasoning_chain (LLMChain): LangChain reasoning chain for uncertain matches.
+        vertex_ai_endpoint (str): Vertex AI Matching Engine endpoint.
+        project_id (str): Google Cloud project ID.
+        region (str): Google Cloud region.
 
     Returns:
         dict: A dictionary with matched, uncertain, and no matches.
@@ -20,31 +16,34 @@ def match_products_with_vector_search(internal_products, external_products, vect
     uncertain_matches = []
     no_matches = []
 
+    # Initialize Vertex AI client
+    aiplatform.init(project=project_id, location=region)
+    index_endpoint = aiplatform.MatchingEngineIndexEndpoint(vertex_ai_endpoint)
+
     for external in external_products:
-        # Step 1: Exact Matching
-        if external in internal_products:
-            matched_products.append({"uploaded": external, "matchedWith": external})
-            continue
+        # Generate embedding for the external product (use your embedding model)
+        external_embedding = generate_embedding(external)  # Replace with your embedding logic
 
-        # Step 2: Vector Search for Confident Matches
-        search_results = vector_store.similarity_search_with_score(external, k=5)
-        confident_matches = [result[0] for result in search_results if result[1] > 0.9]  # Confidence threshold
-        semi_confident_matches = [result[0] for result in search_results if 0.7 < result[1] <= 0.9]
+        # Query the Vertex AI Matching Engine
+        response = index_endpoint.match(
+            deployed_index_id="product-matching-deployment",
+            queries=[external_embedding],
+            num_neighbors=5,
+        )
 
-        if confident_matches:
-            matched_products.append({"uploaded": external, "matchedWith": confident_matches[0]})
-        elif semi_confident_matches:
-            # Step 3: Use LangChain for Reasoning
-            reasoning_result = reasoning_chain.run(
-                uploaded_product=external,
-                possible_matches=semi_confident_matches
-            )
-            if reasoning_result.lower() == "uncertain":
+        # Process the response
+        if response and response[0].neighbors:
+            neighbors = response[0].neighbors
+            confident_matches = [n.id for n in neighbors if n.distance < 0.1]  # Adjust threshold
+            semi_confident_matches = [n.id for n in neighbors if 0.1 <= n.distance < 0.3]
+
+            if confident_matches:
+                matched_products.append({"uploaded": external, "matchedWith": confident_matches[0]})
+            elif semi_confident_matches:
                 uncertain_matches.append({"uploaded": external, "possibleMatches": semi_confident_matches})
             else:
-                matched_products.append({"uploaded": external, "matchedWith": reasoning_result})
+                no_matches.append({"uploaded": external})
         else:
-            # Step 4: No Matches
             no_matches.append({"uploaded": external})
 
     return {
