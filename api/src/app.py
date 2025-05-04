@@ -1,10 +1,24 @@
 import os
 from flask import Flask, send_from_directory, request, jsonify
 from data_processing import process_uploaded_file
+from matching_engine import match_products_with_vector_search
+from utils import load_internal_products_from_gcs  # Import the utility function
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import FAISS
 
 # Set static folder for serving frontend files
 static_path = os.path.join(os.path.dirname(__file__), "../frontend/public")
 app = Flask(__name__, static_folder=static_path)
+
+# Load internal products from GCS
+PROJECT_ID = "genai-product-matching"  # Replace with your GCP project ID
+BUCKET_NAME = "genai-product-matching-data"  # Replace with your GCS bucket name
+FILE_NAME = "Data_Internal_cleaned.csv"  # Replace with your file name in GCS
+internal_products = load_internal_products_from_gcs(PROJECT_ID ,BUCKET_NAME, FILE_NAME)
+
+# Initialize vector store
+embeddings = OpenAIEmbeddings()
+vector_store = FAISS.from_texts(internal_products, embeddings)
 
 # Serve index.html for root path
 @app.route("/")
@@ -34,20 +48,17 @@ def match_product():
     try:
         # Process and clean the uploaded file
         df = process_uploaded_file(file)
+        external_products = df["text"].tolist()
 
-        # Example: Use the first row for matching
-        uploaded_product = df["text"].iloc[0]
+        # Call the matching engine
+        results = match_products_with_vector_search(
+            internal_products=internal_products,
+            external_products=external_products,
+            vector_store=vector_store,
+            reasoning_chain=reasoning_chain
+        )
 
-        # Example logic for determining match status
-        matched_products = [{"uploaded": uploaded_product, "matchedWith": "Product A"}]
-        uncertain_matches = [{"uploaded": uploaded_product, "possibleMatches": ["Product B", "Product C"]}]
-        no_matches = [{"uploaded": uploaded_product}]
-
-        return jsonify({
-            "matchedProducts": matched_products,
-            "uncertainMatches": uncertain_matches,
-            "noMatches": no_matches
-        })
+        return jsonify(results)
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
