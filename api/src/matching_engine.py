@@ -1,8 +1,9 @@
 from google import genai
 from google.genai.types import EmbedContentConfig
+from google.cloud import aiplatform
 
 # Initialize the GenAI client for embedding generation
-genai_client = genai.Client(project="genai-product-matching", location="northamerica-northeast1")
+genai_client = genai.Client(vertexai=True, project="genai-product-matching", location="northamerica-northeast1")
 
 def generate_embedding(text):
     """
