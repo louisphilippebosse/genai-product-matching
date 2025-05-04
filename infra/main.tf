@@ -47,6 +47,7 @@ resource "google_cloud_run_v2_service" "flask_app" {
 
   traffic {
     percent = 100
+    latest_revision = true
   }
 }
 
