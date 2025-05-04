@@ -72,6 +72,10 @@ gcloud projects add-iam-policy-binding genai-product-matching \
 gcloud projects add-iam-policy-binding genai-product-matching \
     --member="serviceAccount:github-actions-deployer@genai-product-matching.iam.gserviceaccount.com" \
     --role="roles/storage.admin"
+    
+gcloud projects add-iam-policy-binding genai-product-matching \
+    --member="serviceAccount:github-actions-deployer@genai-product-matching.iam.gserviceaccount.com" \
+    --role="roles/iam.serviceAccountUser"
 ```
 
 make sure the following APIs are enabled:
