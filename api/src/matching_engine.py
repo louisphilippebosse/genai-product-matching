@@ -60,7 +60,9 @@ def match_products_with_vector_search(external_products, vertex_ai_endpoint, dep
     try:
         logging.info("Initializing Vertex AI client.")
         aiplatform.init(project=project_id, location=region)
-        index_endpoint = aiplatform.MatchingEngineIndexEndpoint(vertex_ai_endpoint)
+        index_endpoint = aiplatform.MatchingEngineIndexEndpoint(
+            index_endpoint_name=vertex_ai_endpoint
+        )
         logging.info("Vertex AI client initialized successfully.")
 
         for external in external_products:
