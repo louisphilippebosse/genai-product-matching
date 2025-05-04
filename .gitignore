@@ -185,3 +185,6 @@ node_modules/
 
 # Local .terraform directories
 .terraform/
+
+# ignore all .jsonl files
+*.jsonl
