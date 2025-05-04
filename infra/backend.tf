@@ -1,6 +1,6 @@
 terraform {
   backend "gcs" {
-    bucket  = "${var.project_id}-terraform-state"
+    bucket  = "genai-product-matching-terraform-state"
     prefix  = "terraform/state"
   }
 }
