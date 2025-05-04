@@ -9,6 +9,8 @@ resource "google_project_iam_member" "cloud_run_service_account_artifact_reader"
   member  = "serviceAccount:${google_service_account.cloud_run_service_account.email}"
 }
 
+
+
 resource "google_artifact_registry_repository" "product_matching_app" {
   repository_id = "product-matching-app"
   format        = "DOCKER"
@@ -27,7 +29,7 @@ resource "google_cloud_run_v2_service" "flask_app" {
 
   template {
     containers {
-      image = "northamerica-northeast1-docker.pkg.dev/${var.project_id}/product-matching-app/product-matching-app:latest"
+      image = "northamerica-northeast1-docker.pkg.dev/${var.project_id}/product-matching-app/product-matching-app:v1.0.0"
       ports {
         name = "http"
         container_port = 5000

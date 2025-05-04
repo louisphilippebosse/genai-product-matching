@@ -23,12 +23,18 @@ jobs:
       run: gcloud auth configure-docker northamerica-northeast1-docker.pkg.dev
 
     - name: Build Docker image
+      env:
+        VERSION_TAG: v1.0.0 # Replace with your versioning logic
       run: |
-        docker build -t northamerica-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/product-matching-app/product-matching-app:latest ./api
+        docker build -t northamerica-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/product-matching-app/product-matching-app:latest \
+                     -t northamerica-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/product-matching-app/product-matching-app:${{ env.VERSION_TAG }} ./api
 
     - name: Push Docker image to GCP Artifact Registry
+      env:
+        VERSION_TAG: v1.0.0 # Replace with your versioning logic
       run: |
         docker push northamerica-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/product-matching-app/product-matching-app:latest
+        docker push northamerica-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/product-matching-app/product-matching-app:${{ env.VERSION_TAG }}
 
   terraform:
     name: Terraform Workflow
