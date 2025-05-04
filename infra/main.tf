@@ -30,7 +30,7 @@ resource "google_cloud_run_v2_service" "flask_app" {
       image = "northamerica-northeast1-docker.pkg.dev/${var.project_id}/product-matching-app/product-matching-app:latest"
       ports {
         name = "http"
-        container_port = 8080
+        container_port = 5000
       }
       resources {
         limits = {
@@ -42,7 +42,7 @@ resource "google_cloud_run_v2_service" "flask_app" {
     service_account = google_service_account.cloud_run_service_account.email
     scaling {
       max_instance_count = 2
-    }
+    }  
   }
 
   traffic {

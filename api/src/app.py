@@ -1,7 +1,7 @@
 import os
 from flask import Flask, send_from_directory, request, jsonify
 
-app = Flask(__name__, static_folder="../frontend/public")
+app = Flask(__name__, static_folder="./frontend/public")
 
 @app.route("/")
 def serve_frontend():
