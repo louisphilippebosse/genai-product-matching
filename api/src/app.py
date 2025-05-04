@@ -1,3 +1,4 @@
+import os
 from flask import Flask, send_from_directory, request, jsonify
 
 app = Flask(__name__, static_folder="../frontend/public")
@@ -23,3 +24,8 @@ def match_product():
 
     # Return the matched product as a JSON response
     return jsonify({"matchedProduct": matched_product})
+
+if __name__ == "__main__":
+    # Bind to the port specified by the PORT environment variable
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
