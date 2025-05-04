@@ -1,5 +1,6 @@
 import os
 from flask import Flask, send_from_directory, request, jsonify
+from data_processing import process_uploaded_file
 
 # Set static folder for serving frontend files
 static_path = os.path.join(os.path.dirname(__file__), "../frontend/public")
@@ -30,21 +31,28 @@ def match_product():
     if not file:
         return jsonify({"error": "No file uploaded"}), 400
 
-    # Dummy data for the uploaded product (replace with actual parsing logic)
-    uploaded_product = "Uploaded Product X"  # Replace with logic to extract product info from the file
+    try:
+        # Process and clean the uploaded file
+        df = process_uploaded_file(file)
 
-    # Example logic for determining match status
-    matched_products = [{"uploaded": uploaded_product, "matchedWith": "Product A"}]  # Replace with actual logic
-    uncertain_matches = [
-        {"uploaded": uploaded_product, "possibleMatches": ["Product B", "Product C", "Product D"]}
-    ]  # Replace with actual logic
-    no_matches = [{"uploaded": uploaded_product}]  # Replace with actual logic
+        # Example: Use the first row for matching
+        uploaded_product = df["text"].iloc[0]
 
-    return jsonify({
-        "matchedProducts": matched_products,
-        "uncertainMatches": uncertain_matches,
-        "noMatches": no_matches
-    })
+        # Example logic for determining match status
+        matched_products = [{"uploaded": uploaded_product, "matchedWith": "Product A"}]
+        uncertain_matches = [{"uploaded": uploaded_product, "possibleMatches": ["Product B", "Product C"]}]
+        no_matches = [{"uploaded": uploaded_product}]
+
+        return jsonify({
+            "matchedProducts": matched_products,
+            "uncertainMatches": uncertain_matches,
+            "noMatches": no_matches
+        })
+
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": f"An unexpected error occurred: {str(e)}"}), 500
 
 # Main entrypoint
 if __name__ == "__main__":
