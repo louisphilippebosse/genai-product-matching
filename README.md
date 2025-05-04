@@ -47,11 +47,37 @@ Good luck!
 # Step do do the project : 
 create a venv.
 create a service account
-add the following role : 
+add the following roles:
+```bash
+gcloud projects add-iam-policy-binding genai-product-matching \
+    --member="serviceAccount:github-actions-deployer@genai-product-matching.iam.gserviceaccount.com" \
+    --role="roles/artifactregistry.admin"
 
+gcloud projects add-iam-policy-binding genai-product-matching \
+    --member="serviceAccount:github-actions-deployer@genai-product-matching.iam.gserviceaccount.com" \
+    --role="roles/resourcemanager.projectIamAdmin"
+
+gcloud projects add-iam-policy-binding genai-product-matching \
+    --member="serviceAccount:github-actions-deployer@genai-product-matching.iam.gserviceaccount.com" \
+    --role="roles/bigquery.admin"
+
+gcloud projects add-iam-policy-binding genai-product-matching \
+    --member="serviceAccount:github-actions-deployer@genai-product-matching.iam.gserviceaccount.com" \
+    --role="roles/iam.serviceAccountAdmin"
+
+gcloud projects add-iam-policy-binding genai-product-matching \
+    --member="serviceAccount:github-actions-deployer@genai-product-matching.iam.gserviceaccount.com" \
+    --role="roles/run.admin"
+
+gcloud projects add-iam-policy-binding genai-product-matching \
+    --member="serviceAccount:github-actions-deployer@genai-product-matching.iam.gserviceaccount.com" \
+    --role="roles/storage.admin"
+```
 
 make sure the following APIs are enabled:
 ```bash
 gcloud services enable run.googleapis.com --project=genai-product-matching
 gcloud services enable iam.googleapis.com --project=genai-product-matching
 gcloud services enable aiplatform.googleapis.com --project=genai-product-matching
+gcloud services enable cloudresourcemanager.googleapis.com --project=genai-product-matching
+```
