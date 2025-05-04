@@ -1,5 +1,6 @@
 import csv
 import json
+import uuid
 from google.cloud import storage
 
 # Input and output paths
@@ -14,9 +15,12 @@ def csv_to_jsonl(input_csv, output_jsonl):
         reader = csv.DictReader(csv_file)
         
         for row in reader:
+            # Generate a unique ID if the NAME field is empty
+            unique_id = str(uuid.uuid4())
+            
             # Extract the relevant field for embedding (e.g., LONG_NAME)
             if row.get("LONG_NAME"):
-                json_object = {"id": row["NAME"], "embedding": row["LONG_NAME"]}
+                json_object = {"id": unique_id, "embedding": row["LONG_NAME"]}
                 jsonl_file.write(json.dumps(json_object) + "\n")
     
     print(f"Data successfully converted to JSONL and saved to {output_jsonl}")

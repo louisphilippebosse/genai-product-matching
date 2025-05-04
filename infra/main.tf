@@ -106,21 +106,25 @@ resource "google_vertex_ai_index" "product_matching_index" {
   display_name = "product-matching-index"
   description  = "Index for product matching"
   region       = var.region
-  metadata = jsonencode({
-    contents_delta_uri = "gs://${google_storage_bucket.data_bucket.name}/contents/internal_products.jsonl",
-    config = {
+
+  metadata {
+    contents_delta_uri = "gs://${google_storage_bucket.data_bucket.name}/contents/internal_products.jsonl"
+
+    config {
       dimensions = 768  # Adjust based on your embedding size
       approximate_neighbors_count = 100
       shard_size = "SHARD_SIZE_SMALL"
       distance_measure_type = "DOT_PRODUCT_DISTANCE"
-      algorithm_config = {
-        tree_ah_config = {
+
+      algorithm_config {
+        tree_ah_config {
           leaf_node_embedding_count = 500
           leaf_nodes_to_search_percent = 7
         }
       }
     }
-  })
+  }
+
   metadata_schema_uri = "gs://google-cloud-aiplatform/schema/matchingengine/metadata/nearest_neighbor_search_1.0.0.yaml"
   index_update_method = "BATCH_UPDATE"
 }
