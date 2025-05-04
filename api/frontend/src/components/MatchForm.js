@@ -38,7 +38,7 @@ function MatchForm() {
     };
 
     return (
-        <div className="p-4 border rounded shadow bg-white" style={{ maxWidth: '400px', width: '100%' }}>
+        <div className="p-4 border rounded shadow bg-white" style={{ maxWidth: '600px', width: '100%' }}>
             <form onSubmit={handleSubmit}>
                 <div className="mb-3">
                     <input
@@ -54,47 +54,69 @@ function MatchForm() {
             </form>
             {result && (
                 <div className="mt-4">
-                    {result.matchedProducts.length > 0 && (
-                        <>
-                            <h3>Matched Products:</h3>
-                            <ul>
-                                {result.matchedProducts.map((product, index) => (
-                                    <li key={index}>
-                                        Uploaded: {product.uploaded}, Matched With: {product.matchedWith}
-                                    </li>
-                                ))}
-                            </ul>
-                        </>
-                    )}
-                    {result.uncertainMatches.length > 0 && (
-                        <>
-                            <h3>Uncertain Matches:</h3>
-                            <ul>
-                                {result.uncertainMatches.map((product, index) => (
-                                    <li key={index}>
-                                        Uploaded: {product.uploaded}
-                                        <ul>
-                                            {product.possibleMatches.map((match, matchIndex) => (
-                                                <li key={matchIndex}>Possible Match: {match}</li>
-                                            ))}
-                                        </ul>
-                                    </li>
-                                ))}
-                            </ul>
-                        </>
-                    )}
-                    {result.noMatches.length > 0 && (
-                        <>
-                            <h3>No Matches Found:</h3>
-                            <ul>
-                                {result.noMatches.map((product, index) => (
-                                    <li key={index}>
-                                        Uploaded: {product.uploaded}
-                                    </li>
-                                ))}
-                            </ul>
-                        </>
-                    )}
+                    {/* Matched Products Table */}
+                    <h3>Matched Products</h3>
+                    <table className="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Uploaded Product</th>
+                                <th>Matched With</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {result.matchedProducts.map((product, index) => (
+                                <tr key={`matched-${index}`}>
+                                    <td>{product.uploaded}</td>
+                                    <td>{product.matchedWith}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {/* Uncertain Matches Table */}
+                    <h3>Uncertain Matches</h3>
+                    <table className="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Uploaded Product</th>
+                                <th>Possible Matches</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {result.uncertainMatches.map((product, index) => (
+                                <tr key={`uncertain-${index}`}>
+                                    <td>{product.uploaded}</td>
+                                    <td>
+                                        {product.possibleMatches.map((match, matchIndex) => (
+                                            <span key={matchIndex}>
+                                                {match}
+                                                <br />
+                                            </span>
+                                        ))}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {/* No Matches Table */}
+                    <h3>No Matches Found</h3>
+                    <table className="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Uploaded Product</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {result.noMatches.map((product, index) => (
+                                <tr key={`no-match-${index}`}>
+                                    <td>{product.uploaded}</td>
+                                    <td>No Match</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             )}
         </div>
