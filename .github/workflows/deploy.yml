@@ -19,15 +19,15 @@ jobs:
         credentials_json: ${{ secrets.GCP_CREDENTIALS }}
 
     - name: Configure Docker to use GCP Artifact Registry
-      run: gcloud auth configure-docker
+      run: gcloud auth configure-docker northamerica-northeast1-docker.pkg.dev
 
     - name: Build Docker image
       run: |
-        docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/product-matching-app:latest ./api
+        docker build -t northamerica-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/product-matching-app:latest ./api
 
     - name: Push Docker image to GCP Artifact Registry
       run: |
-        docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/product-matching-app:latest
+        docker push northamerica-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/product-matching-app:latest
 
     - name: Set up Terraform
       uses: hashicorp/setup-terraform@v2
