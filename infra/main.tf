@@ -44,11 +44,6 @@ resource "google_cloud_run_v2_service" "flask_app" {
       max_instance_count = 2
     }  
   }
-
-  traffic {
-    percent = 100
-    latest_revision = true
-  }
 }
 
 data "google_iam_policy" "noauth" {
