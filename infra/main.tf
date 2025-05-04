@@ -125,7 +125,6 @@ resource "google_vertex_ai_index" "product_matching_index" {
     }
   }
 
-  metadata_schema_uri = "gs://google-cloud-aiplatform/schema/matchingengine/metadata/nearest_neighbor_search_1.0.0.yaml"
   index_update_method = "BATCH_UPDATE"
 }
 
