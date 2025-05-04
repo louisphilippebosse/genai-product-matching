@@ -17,7 +17,7 @@ resource "google_storage_bucket_iam_member" "cloud_run_service_account_storage_r
 
 resource "google_project_iam_member" "cloud_run_service_account_vertex_ai_user" {
   project = var.project_id
-  role    = "roles/aiplatform.user"
+  role    = "roles/aiplatform.admin"
   member  = "serviceAccount:${google_service_account.cloud_run_service_account.email}"
 }
 
