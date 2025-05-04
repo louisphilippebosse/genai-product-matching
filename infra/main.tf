@@ -139,9 +139,8 @@ resource "google_vertex_ai_index_endpoint_deployed_index" "product_matching_depl
     google_vertex_ai_index.product_matching_index,
     google_vertex_ai_index_endpoint.product_matching_endpoint
   ]
-  index_endpoint = google_vertex_ai_index_endpoint.product_matching_endpoint.id
-  deployed_index {
-    id    = "product-matching-deployment"
-    index = google_vertex_ai_index.product_matching_index.id
-  }
+
+  index_endpoint    = google_vertex_ai_index_endpoint.product_matching_endpoint.id
+  index             = google_vertex_ai_index.product_matching_index.id
+  deployed_index_id = "product-matching-deployment"
 }
