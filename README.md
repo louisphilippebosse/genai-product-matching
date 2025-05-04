@@ -43,3 +43,7 @@ To help you understand our requirements, here are a few examples of correct and 
 There is no single correct approach to this task; we are interested in your problem-solving process.
 
 Good luck!
+
+# Step do do the project : 
+create a venv.
+create a service account
