@@ -40,8 +40,16 @@ resource "google_cloud_run_v2_service" "flask_app" {
       }
       resources {
         limits = {
-          memory = "512Mi"
-          cpu    = "1"
+          memory = "2Gi"
+          cpu    = "2"
+        }
+      }
+      startup_probe {
+        timeout_seconds = 300
+        period_seconds  = 10
+        failure_threshold = 3
+        tcp_socket {
+          port = 5000
         }
       }
     }
