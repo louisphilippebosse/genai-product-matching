@@ -1,8 +1,3 @@
-provider "google" {
-  project = var.project_id
-  region  = var.region
-}
-
 resource "google_artifact_registry_repository" "product_matching_app" {
   name         = "product-matching-app"
   repository_id = "product-matching-app"
