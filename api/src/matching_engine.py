@@ -2,7 +2,7 @@ from google import genai
 from google.genai.types import EmbedContentConfig
 
 # Initialize the GenAI client for embedding generation
-genai_client = genai.Client()
+genai_client = genai.Client(project="genai-product-matching", location="northamerica-northeast1")
 
 def generate_embedding(text):
     """
