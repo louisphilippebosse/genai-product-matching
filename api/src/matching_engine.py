@@ -35,6 +35,8 @@ llm = init_chat_model(
     "gemini-2.0-flash-001",
     model_provider="google_vertexai"
 )
+import json
+
 def process_semi_confident_matches(uploaded_product, possible_matches):
     """
     Process semi-confident matches using an LLM to determine the most probable match.
@@ -49,12 +51,34 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
     prompt = f"""
     You are an expert in product matching. Your task is to compare the uploaded product with possible matches.
     Extract the product size (e.g., '3 OZ', '1lb', '12g') from both the uploaded product and the possible matches.
-    If the sizes match and the rest of the product details are similar, mark it as a confident match.
-
+    If the sizes match and the rest of the product details (e.g., flavor, brand, description) are similar, mark it as a confident match.
+    If no confident match is found, explain why.
+    
     Uploaded Product: {uploaded_product}
     Possible Matches: {', '.join([match['long_name'] for match in possible_matches])}
-
-    Return the result as a JSON object with the following format:
+    
+    Here are examples of correct and incorrect matches to guide you:
+    
+    #### Correct Matches:
+    | External_Product_Name                     | Internal_Product_Name                          |
+    |-------------------------------------------|-----------------------------------------------|
+    | DIET LIPTON GREEN TEA W/ CITRUS 20 OZ     | Lipton Diet Green Tea with Citrus (20oz)      |
+    | CH-CHERRY CHS CLAW DANISH 4.25 OZ         | Cloverhill Cherry Cheese Bearclaw Danish (4.25oz) |
+    
+    Reason for Correct Matches:
+    - The product size matches exactly.
+    - The product name and description are similar (e.g., flavor, brand).
+    
+    #### Wrong Matches:
+    | External_Product_Name                     | Internal_Product_Name                          |
+    |-------------------------------------------|-----------------------------------------------|
+    | Cloverhill Cherry Cheese Bearclaw Danish (4.25oz) | Hersheys Almond Milk Choco 1.6 oz           |
+    | COOKIE PEANUT BUTTER 2OZ                  | Famous Amos Peanut Butter Cookie (2oz)        |
+    
+    Reason for Wrong Matches:
+    - The product size or description does not match (e.g., different flavor, brand, or type).
+    
+    Now, compare the uploaded product with the possible matches and return the result as a JSON object with the following format:
     {{
         "is_confident": <true/false>,
         "matched_datapoint_id": <string>,  # The datapoint_id of the matched product
@@ -68,9 +92,15 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
     # Log the raw response for debugging
     logging.debug(f"Raw LLM response: {response.content}")
 
+    # Preprocess the response to remove code block markers
+    raw_content = response.content.strip()
+    if raw_content.startswith("```") and raw_content.endswith("```"):
+        raw_content = raw_content.split("\n", 1)[1].rsplit("\n", 1)[0]
+
     # Parse the response into the ProductComparison schema
     try:
-        comparison = ProductComparison.model_validate_json(response.content)
+        comparison_data = json.loads(raw_content)  # Parse the cleaned JSON string
+        comparison = ProductComparison(**comparison_data)  # Validate with Pydantic
         if comparison.is_confident:
             # Find the matched product by its datapoint_id
             matched_product = next(
@@ -86,6 +116,8 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
                         "reason": comparison.reason,
                     },
                 }
+            else:
+                logging.warning(f"Matched datapoint_id not found in possible_matches: {comparison.matched_datapoint_id}")
         # Return all possible matches if no confident match is found
         return {
             "uploaded": uploaded_product,
@@ -100,7 +132,6 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
             "uploaded": uploaded_product,
             "possibleMatches": possible_matches,
         }
-
 def generate_embeddings_in_batches(texts, batch_size=250, max_calls_per_minute=5, retries=3, retry_delay=10):
     """
     Generate embeddings for a list of texts in batches, respecting API limits.
