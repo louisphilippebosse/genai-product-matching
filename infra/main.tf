@@ -3,6 +3,12 @@ resource "google_service_account" "cloud_run_service_account" {
   display_name = "Service Account for Cloud Run"
 }
 
+resource "google_project_iam_member" "cloud_run_service_account_bigquery_user" {
+  project = var.project_id
+  role    = "roles/bigquery.user"
+  member  = "serviceAccount:${google_service_account.cloud_run_service_account.email}"
+}
+
 resource "google_project_iam_member" "cloud_run_service_account_artifact_reader" {
   project = var.project_id
   role    = "roles/artifactregistry.reader"
