@@ -3,6 +3,8 @@ import time
 from google import genai
 from google.genai.types import EmbedContentConfig
 from google.cloud import aiplatform_v1
+from bigquery_client import get_long_name_by_datapoint_id
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -136,12 +138,24 @@ def match_products_with_vector_search_in_batches(
                 response = vector_search_client.find_neighbors(request)
                 # Log the raw response for debugging
                 logging.info(f"Raw response from Matching Engine: {response}")
-                # Process the responses
+                # Inside the loop where neighbors are processed
                 for product, query_result in zip(batch, response.nearest_neighbors):
                     if query_result.neighbors:
                         neighbors = query_result.neighbors
-                        confident_matches = [n.datapoint.datapoint_id for n in neighbors if n.distance > 0.95]
-                        semi_confident_matches = [n.datapoint.datapoint_id for n in neighbors if 0.7 <= n.distance <= 0.95]
+                        confident_matches = [
+                            {
+                                "datapoint_id": n.datapoint.datapoint_id,
+                                "long_name": get_long_name_by_datapoint_id(n.datapoint.datapoint_id)
+                            }
+                            for n in neighbors if n.distance > 0.95
+                        ]
+                        semi_confident_matches = [
+                            {
+                                "datapoint_id": n.datapoint.datapoint_id,
+                                "long_name": get_long_name_by_datapoint_id(n.datapoint.datapoint_id)
+                            }
+                            for n in neighbors if 0.7 <= n.distance <= 0.95
+                        ][:5]
 
                         if confident_matches:
                             matched_products.append({"uploaded": product, "matchedWith": confident_matches[0]})
@@ -155,7 +169,6 @@ def match_products_with_vector_search_in_batches(
                     else:
                         no_matches.append({"uploaded": product})
                         logging.info(f"No neighbors found for product: {product}")
-
             except Exception as e:
                 logging.error(f"Error processing batch {i // batch_size + 1}: {str(e)}")
                 for product in batch:
