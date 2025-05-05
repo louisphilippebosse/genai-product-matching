@@ -9,6 +9,12 @@ resource "google_project_iam_member" "cloud_run_service_account_bigquery_user" {
   member  = "serviceAccount:${google_service_account.cloud_run_service_account.email}"
 }
 
+resource "google_bigquery_dataset_iam_member" "cloud_run_service_account_dataset_viewer" {
+  dataset_id = "embedding_dataset"
+  role       = "roles/bigquery.dataViewer"
+  member     = "serviceAccount:${google_service_account.cloud_run_service_account.email}"
+}
+
 resource "google_project_iam_member" "cloud_run_service_account_artifact_reader" {
   project = var.project_id
   role    = "roles/artifactregistry.reader"
