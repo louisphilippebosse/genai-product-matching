@@ -60,7 +60,10 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
         If there is any difference in these details, it should not be considered a confident match, even if the product size matches.
 
         Uploaded Product: {uploaded_product}
-        Possible Matches: {', '.join([f"{match['datapoint_id']} ({match['long_name']})" for match in possible_matches])}
+        Possible Matches:
+        | datapoint_id | long_name                              |
+        |--------------|----------------------------------------|
+        {''.join([f"| {match['datapoint_id']} | {match['long_name']} |\n" for match in possible_matches])}
 
         Here are examples of correct and incorrect matches to guide you:
 
