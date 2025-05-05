@@ -60,7 +60,7 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
         If there is any difference in these details, it should not be considered a confident match, even if the product size matches.
 
         Uploaded Product: {uploaded_product}
-        Possible Matches: {', '.join([match['long_name'] for match in possible_matches])}
+        Possible Matches: {', '.join([f"{match['datapoint_id']} ({match['long_name']})" for match in possible_matches])}
 
         Here are examples of correct and incorrect matches to guide you:
 
@@ -88,6 +88,7 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
         {{
             "is_confident": <true/false>,
             "matched_datapoint_id": <string>,  # The datapoint_id of the matched product
+            "long_name": <string>,  # The long name of the matched product
             "reason": <string>
         }}
         """
@@ -104,14 +105,14 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
         # Normalize keys to snake_case for Pydantic
         comp = ProductComparison.model_validate(data)
         if comp.is_confident and comp.matched_datapoint_id:
-            logging.info(f"Confident match found: {comp.matched_datapoint_id}")
+            logging.info(f"Confident match identified by LLM for uploaded product: {uploaded_product}")
             candidate = next(
                 (m for m in possible_matches if m["datapoint_id"] == comp.matched_datapoint_id),
                 None
             )
             if candidate:
                 # Return the matched product details
-                logging.info(f"Confident match found: {candidate['long_name']}")
+                logging.info(f"Final confident match details: datapoint_id={candidate['datapoint_id']}, long_name={candidate['long_name']}")
                 return {
                     "datapoint_id": candidate["datapoint_id"],
                     "long_name": candidate["long_name"],
