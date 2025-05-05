@@ -33,7 +33,7 @@ except Exception as e:
 # Initialize the Gemini Flash Pro 1.5 model
 llm = init_chat_model(
     "gemini-1.5-flash",
-    model_provider="google_genai",
+    model_provider="google_vertexai",
     location="northamerica-northeast1"
 )
 
