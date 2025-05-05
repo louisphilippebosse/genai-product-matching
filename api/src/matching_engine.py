@@ -85,8 +85,8 @@ def match_products_with_vector_search_in_batches(
         dict: A dictionary with matched, uncertain, and no matches.
     """
     # Set variables for the current deployed index
-    API_ENDPOINT = "68284885.northamerica-northeast1-123728674703.vdb.vertexai.goog"
-    INDEX_ENDPOINT = "projects/123728674703/locations/northamerica-northeast1/indexEndpoints/310642821172297728"
+    API_ENDPOINT = "8241972.northamerica-northeast1-123728674703.vdb.vertexai.goog"
+    INDEX_ENDPOINT = "projects/123728674703/locations/northamerica-northeast1/indexEndpoints/4730925855436439552"
     DEPLOYED_INDEX_ID = "product_matching_deployment"
 
     # Configure the Vector Search client
