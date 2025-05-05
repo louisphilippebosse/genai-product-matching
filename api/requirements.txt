@@ -4,3 +4,5 @@ google-cloud-bigquery
 google-cloud-aiplatform
 pandas
 google-genai
+langchain
+langchain-community
