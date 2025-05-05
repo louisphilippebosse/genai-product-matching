@@ -140,8 +140,8 @@ def match_products_with_vector_search_in_batches(
                 for product, query_result in zip(batch, response.nearest_neighbors):
                     if query_result.neighbors:
                         neighbors = query_result.neighbors
-                        confident_matches = [n.datapoint.datapoint_id for n in neighbors if n.distance < 0.1]
-                        semi_confident_matches = [n.datapoint.datapoint_id for n in neighbors if 0.1 <= n.distance < 0.3]
+                        confident_matches = [n.datapoint.datapoint_id for n in neighbors if n.distance > 0.95]
+                        semi_confident_matches = [n.datapoint.datapoint_id for n in neighbors if 0.7 <= n.distance <= 0.95]
 
                         if confident_matches:
                             matched_products.append({"uploaded": product, "matchedWith": confident_matches[0]})
