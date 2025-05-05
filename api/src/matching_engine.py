@@ -32,7 +32,7 @@ except Exception as e:
 
 # Initialize the Gemini Flash Pro 1.5 model
 llm = init_chat_model(
-    "gemini-2.0-flash",
+    "gemini-2.0-flash-001",
     model_provider="google_vertexai"
 )
 
@@ -55,11 +55,18 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
     Uploaded Product: {uploaded_product}
     Possible Matches: {', '.join([match['long_name'] for match in possible_matches])}
 
-    Return the most confident match with a reason, or indicate if no confident match is found.
+    Return the result as a JSON object with the following format:
+    {{
+        "is_confident": <true/false>,
+        "reason": <string>
+    }}
     """
 
     # Invoke the LLM
     response = llm.invoke(prompt)
+
+    # Log the raw response for debugging
+    logging.debug(f"Raw LLM response: {response.content}")
 
     # Parse the response into the ProductComparison schema
     try:
@@ -72,7 +79,8 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
             }
     except Exception as e:
         logging.error(f"Error processing semi-confident matches: {str(e)}")
-    
+        logging.error(f"Invalid LLM response: {response.content}")
+
     return None
 
 def generate_embeddings_in_batches(texts, batch_size=250, max_calls_per_minute=5, retries=3, retry_delay=10):
