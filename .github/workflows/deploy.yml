@@ -1,0 +1,71 @@
+name: Deploy Product Matching App to GCP
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build_and_push_docker:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Authenticate with GCP
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+    - name: Configure Docker to use GCP Artifact Registry
+      run: gcloud auth configure-docker northamerica-northeast1-docker.pkg.dev
+
+    - name: Build Docker image
+      env:
+        VERSION_TAG: v1.0.0 # Replace with your versioning logic
+      run: |
+        docker build -t northamerica-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/product-matching-app/product-matching-app:latest \
+                     -t northamerica-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/product-matching-app/product-matching-app:${{ env.VERSION_TAG }} ./api
+
+    - name: Push Docker image to GCP Artifact Registry
+      env:
+        VERSION_TAG: v1.0.0 # Replace with your versioning logic
+      run: |
+        docker push northamerica-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/product-matching-app/product-matching-app:latest
+        docker push northamerica-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/product-matching-app/product-matching-app:${{ env.VERSION_TAG }}
+
+  terraform:
+    name: Terraform Workflow
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Authenticate with GCP
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.0
+
+    - name: Initialize Terraform
+      run: terraform init
+      working-directory: ./infra
+
+    - name: Validate Terraform
+      run: terraform validate
+      working-directory: ./infra
+
+    - name: Plan Terraform
+      run: terraform plan -out=tfplan
+      working-directory: ./infra
+
+    - name: Apply Terraform
+      run: terraform apply -auto-approve tfplan
+      working-directory: ./infra

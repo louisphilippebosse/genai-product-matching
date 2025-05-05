@@ -1,0 +1,5 @@
+pandas
+jupyter
+google-cloud-storage
+google-cloud-bigquery
+google-auth
