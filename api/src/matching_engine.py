@@ -31,7 +31,11 @@ except Exception as e:
     raise
 
 # Initialize the Gemini Flash Pro 1.5 model
-llm = init_chat_model("gemini-flash-pro-1.5", model_provider="google_vertexai")
+llm = init_chat_model(
+    "gemini-flash-pro-1.5",
+    model_provider="google_genai",
+    location="northamerica-northeast1"
+)
 
 def process_semi_confident_matches(uploaded_product, possible_matches):
     """
