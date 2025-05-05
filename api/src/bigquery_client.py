@@ -2,7 +2,7 @@
 from google.cloud import bigquery
 
 def query_bigquery(query):
-    client = bigquery.Client(project="genai-product-matching")
+    client = bigquery.Client(project="genai-product-matching", location="northamerica-northeast1")
     return client.query(query).result()
 
 def get_long_name_by_datapoint_id(datapoint_id):
