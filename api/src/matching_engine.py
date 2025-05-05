@@ -44,7 +44,7 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
         possible_matches (list): List of possible matches (dicts with 'datapoint_id' and 'long_name').
 
     Returns:
-        dict: The most confident match or None if no confident match is found.
+        dict: A confident match if found, or all possible matches if no confident match is determined.
     """
     # Prepare the input for the LLM
     prompt = f"""
@@ -72,16 +72,30 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
     try:
         comparison = ProductComparison.model_validate_json(response.content)
         if comparison.is_confident:
+            # Return the most confident match
             return {
-                "datapoint_id": possible_matches[0]["datapoint_id"],  # Assuming the first match is the most probable
-                "long_name": possible_matches[0]["long_name"],
-                "reason": comparison.reason,
+                "uploaded": uploaded_product,
+                "matchedWith": {
+                    "datapoint_id": possible_matches[0]["datapoint_id"],  # Assuming the first match is the most probable
+                    "long_name": possible_matches[0]["long_name"],
+                    "reason": comparison.reason,
+                },
+            }
+        else:
+            # Return all possible matches if no confident match is found
+            return {
+                "uploaded": uploaded_product,
+                "possibleMatches": possible_matches,
             }
     except Exception as e:
         logging.error(f"Error processing semi-confident matches: {str(e)}")
         logging.error(f"Invalid LLM response: {response.content}")
 
-    return None
+        # Return all possible matches in case of an error
+        return {
+            "uploaded": uploaded_product,
+            "possibleMatches": possible_matches,
+        }
 
 def generate_embeddings_in_batches(texts, batch_size=250, max_calls_per_minute=5, retries=3, retry_delay=10):
     """
