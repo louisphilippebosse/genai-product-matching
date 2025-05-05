@@ -4,6 +4,19 @@ from google import genai
 from google.genai.types import EmbedContentConfig
 from google.cloud import aiplatform_v1
 from bigquery_client import get_long_name_by_datapoint_id
+from langchain.chat_models import init_chat_model
+from typing import Optional, List
+from pydantic import BaseModel, Field
+
+class ProductSize(BaseModel):
+    """Extracted product size information."""
+    size: Optional[str] = Field(default=None, description="The size of the product (e.g., '3 OZ', '1lb', '12g').")
+    unit: Optional[str] = Field(default=None, description="The unit of measurement (e.g., 'OZ', 'lb', 'g').")
+
+class ProductComparison(BaseModel):
+    """Comparison result between uploaded product and possible match."""
+    is_confident: bool = Field(default=False, description="Whether the match is confident.")
+    reason: Optional[str] = Field(default=None, description="Reason for the confidence decision.")
 
 
 # Configure logging
@@ -16,6 +29,48 @@ try:
 except Exception as e:
     logging.error(f"Failed to initialize GenAI client: {str(e)}")
     raise
+
+# Initialize the Gemini Flash Pro 1.5 model
+llm = init_chat_model("gemini-flash-pro-1.5", model_provider="google")
+
+def process_semi_confident_matches(uploaded_product, possible_matches):
+    """
+    Process semi-confident matches using an LLM to determine the most probable match.
+    Args:
+        uploaded_product (str): The uploaded product name.
+        possible_matches (list): List of possible matches (dicts with 'datapoint_id' and 'long_name').
+
+    Returns:
+        dict: The most confident match or None if no confident match is found.
+    """
+    # Prepare the input for the LLM
+    prompt = f"""
+    You are an expert in product matching. Your task is to compare the uploaded product with possible matches.
+    Extract the product size (e.g., '3 OZ', '1lb', '12g') from both the uploaded product and the possible matches.
+    If the sizes match and the rest of the product details are similar, mark it as a confident match.
+
+    Uploaded Product: {uploaded_product}
+    Possible Matches: {', '.join([match['long_name'] for match in possible_matches])}
+
+    Return the most confident match with a reason, or indicate if no confident match is found.
+    """
+
+    # Invoke the LLM
+    response = llm.invoke(prompt)
+
+    # Parse the response into the ProductComparison schema
+    try:
+        comparison = ProductComparison.model_validate_json(response.content)
+        if comparison.is_confident:
+            return {
+                "datapoint_id": possible_matches[0]["datapoint_id"],  # Assuming the first match is the most probable
+                "long_name": possible_matches[0]["long_name"],
+                "reason": comparison.reason,
+            }
+    except Exception as e:
+        logging.error(f"Error processing semi-confident matches: {str(e)}")
+    
+    return None
 
 def generate_embeddings_in_batches(texts, batch_size=250, max_calls_per_minute=5, retries=3, retry_delay=10):
     """
@@ -137,7 +192,7 @@ def match_products_with_vector_search_in_batches(
                 logging.info(f"Querying Vertex AI Matching Engine for batch {i // batch_size + 1}.")
                 response = vector_search_client.find_neighbors(request)
                 # Log the raw response for debugging
-                logging.info(f"Raw response from Matching Engine: {response}")
+                #logging.info(f"Raw response from Matching Engine: {response}")
                 # Inside the loop where neighbors are processed
                 for product, query_result in zip(batch, response.nearest_neighbors):
                     if query_result.neighbors:
@@ -161,8 +216,15 @@ def match_products_with_vector_search_in_batches(
                             matched_products.append({"uploaded": product, "matchedWith": confident_matches[0]})
                             logging.info(f"Confident match found for product: {product}")
                         elif semi_confident_matches:
-                            uncertain_matches.append({"uploaded": product, "possibleMatches": semi_confident_matches})
-                            logging.info(f"Uncertain matches found for product: {product}")
+                            # Process semi-confident matches with the LLM
+                            logging.info(f"Processing semi-confident matches for product: {product}")
+                            result = process_semi_confident_matches(product, semi_confident_matches)
+                            if result:
+                                matched_products.append({"uploaded": product, "matchedWith": result})
+                                logging.info(f"LLM confirmed match for product: {product}")
+                            else:
+                                uncertain_matches.append({"uploaded": product, "possibleMatches": semi_confident_matches})
+                                logging.info(f"Uncertain matches found for product: {product}")
                         else:
                             no_matches.append({"uploaded": product})
                             logging.info(f"No matches found for product: {product}")
