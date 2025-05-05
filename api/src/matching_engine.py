@@ -99,39 +99,27 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
 
     # Parse the response into the ProductComparison schema
     try:
-        comparison_data = json.loads(raw_content)  # Parse the cleaned JSON string
-        comparison = ProductComparison(**comparison_data)  # Validate with Pydantic
-        if comparison.is_confident:
-            # Find the matched product by its datapoint_id
-            matched_product = next(
-                (match for match in possible_matches if match["datapoint_id"] == comparison.matched_datapoint_id),
+        data = json.loads(raw_content)
+        comp = ProductComparison(**data)
+        if comp.is_confident and comp.matched_datapoint_id:
+            # Find the matched entry
+            match = next(
+                (m for m in possible_matches if m["datapoint_id"] == comp.matched_datapoint_id),
                 None
             )
-            if matched_product:
+            if match:
                 return {
                     "uploaded": uploaded_product,
                     "matchedWith": {
-                        "datapoint_id": matched_product["datapoint_id"],
-                        "long_name": matched_product["long_name"],
-                        "reason": comparison.reason,
-                    },
+                        "datapoint_id": match["datapoint_id"],
+                        "long_name": match["long_name"],
+                        "reason": comp.reason,
+                    }
                 }
-            else:
-                logging.warning(f"Matched datapoint_id not found in possible_matches: {comparison.matched_datapoint_id}")
-        # Return all possible matches if no confident match is found
-        return {
-            "uploaded": uploaded_product,
-            "possibleMatches": possible_matches,
-        }
     except Exception as e:
-        logging.error(f"Error processing semi-confident matches: {str(e)}")
-        logging.error(f"Invalid LLM response: {response.content}")
-
-        # Return all possible matches in case of an error
-        return {
-            "uploaded": uploaded_product,
-            "possibleMatches": possible_matches,
-        }
+        logging.error(f"Error parsing LLM response: {e}")
+    return None  # No confident match
+    
 def generate_embeddings_in_batches(texts, batch_size=250, max_calls_per_minute=5, retries=3, retry_delay=10):
     """
     Generate embeddings for a list of texts in batches, respecting API limits.
@@ -280,8 +268,8 @@ def match_products_with_vector_search_in_batches(
                             logging.info(f"Processing semi-confident matches for product: {product}")
                             result = process_semi_confident_matches(product, semi_confident_matches)
                             if result:
-                                matched_products.append({"uploaded": product, "matchedWith": result})
-                                logging.info(f"LLM confirmed match for product: {product}")
+                                matched_products.append(result)
+                                logging.info(f"LLM confirmed match: {product}")
                             else:
                                 uncertain_matches.append({"uploaded": product, "possibleMatches": semi_confident_matches})
                                 logging.info(f"Uncertain matches found for product: {product}")
