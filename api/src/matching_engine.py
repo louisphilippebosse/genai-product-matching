@@ -1,4 +1,5 @@
 import logging
+import time
 from google import genai
 from google.genai.types import EmbedContentConfig
 from google.cloud import aiplatform
@@ -14,34 +15,62 @@ except Exception as e:
     logging.error(f"Failed to initialize GenAI client: {str(e)}")
     raise
 
-def generate_embedding(text):
+def generate_embeddings_in_batches(texts, batch_size=250, max_calls_per_minute=5, retries=3, retry_delay=10):
     """
-    Generate an embedding for the given text using a pre-trained embedding model.
+    Generate embeddings for a list of texts in batches, respecting API limits.
     Args:
-        text (str): The text to generate an embedding for.
+        texts (list): List of texts to generate embeddings for.
+        batch_size (int): Maximum number of texts per batch.
+        max_calls_per_minute (int): Maximum number of API calls allowed per minute.
+        retries (int): Number of retries for transient errors.
+        retry_delay (int): Delay (in seconds) between retries.
 
     Returns:
-        list: A list of floats representing the embedding vector.
+        list: A list of embeddings corresponding to the input texts.
     """
-    try:
-        logging.info(f"Generating embedding for text: {text}")
-        response = genai_client.models.embed_content(
-            model="text-embedding-005",
-            contents=[text],
-            config=EmbedContentConfig(
-                task_type="SEMANTIC_SIMILARITY",  # Task type for semantic similarity
-                output_dimensionality=768  # Optional: Specify the dimensionality of the embedding
-            )
-        )
-        embedding = response.embeddings[0].values
-        logging.info(f"Successfully generated embedding for text: {text}")
-        return embedding
-    except Exception as e:
-        logging.error(f"Failed to generate embedding for text '{text}': {str(e)}")
-        raise
+    embeddings = []
+    failed_batches = []
+    failed_batches_file = "failed_batches.json"
+
+    # Calculate the delay needed between API calls to respect the rate limit
+    delay_between_calls = 60 / max_calls_per_minute
+
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i:i + batch_size]
+        for attempt in range(retries):
+            try:
+                logging.info(f"Generating embeddings for batch {i // batch_size + 1} with {len(batch)} texts.")
+                response = genai_client.models.embed_content(
+                    model="text-embedding-005",
+                    contents=batch,
+                    config=EmbedContentConfig(
+                        task_type="SEMANTIC_SIMILARITY",
+                        output_dimensionality=768
+                    )
+                )
+                embeddings.extend([embedding.values for embedding in response.embeddings])
+                break  # Exit retry loop on success
+            except Exception as e:
+                if "RESOURCE_EXHAUSTED" in str(e):
+                    logging.warning(f"Quota exceeded. Retrying in {retry_delay} seconds... (Attempt {attempt + 1}/{retries})")
+                    time.sleep(retry_delay)
+                else:
+                    logging.error(f"Error generating embeddings for batch {i // batch_size + 1}: {str(e)}")
+                    if attempt < retries - 1:
+                        time.sleep(retry_delay)
+                    else:
+                        logging.error(f"Failed to generate embeddings for batch {i // batch_size + 1} after {retries} retries.")
+                        failed_batches.append(batch)
+
+        # Respect the API rate limit
+        if i + batch_size < len(texts):
+            logging.info(f"Throttling: Waiting {delay_between_calls} seconds before the next batch...")
+            time.sleep(delay_between_calls)
+
+    return embeddings
 
 def match_products_with_vector_search_in_batches(
-    external_products, vertex_ai_endpoint, deployed_index_id, project_id, region, batch_size=10
+    external_products, vertex_ai_endpoint, deployed_index_id, project_id, region, batch_size=250, max_calls_per_minute=5
 ):
     """
     Match external products to internal products using Vertex AI Matching Engine in batches.
@@ -52,6 +81,7 @@ def match_products_with_vector_search_in_batches(
         project_id (str): Google Cloud project ID.
         region (str): Google Cloud region.
         batch_size (int): Number of products to process in each batch.
+        max_calls_per_minute (int): Maximum number of API calls allowed per minute.
 
     Returns:
         dict: A dictionary with matched, uncertain, and no matches.
@@ -59,6 +89,9 @@ def match_products_with_vector_search_in_batches(
     matched_products = []
     uncertain_matches = []
     no_matches = []
+
+    # Calculate the delay needed between API calls to respect the rate limit
+    delay_between_calls = 60 / max_calls_per_minute
 
     try:
         logging.info("Initializing Vertex AI client.")
@@ -76,14 +109,7 @@ def match_products_with_vector_search_in_batches(
             try:
                 # Generate embeddings for the batch
                 logging.info(f"Generating embeddings for batch {i // batch_size + 1}.")
-                batch_embeddings = []
-                for product in batch:
-                    try:
-                        embedding = generate_embedding(product)
-                        batch_embeddings.append(embedding)
-                    except Exception as e:
-                        logging.error(f"Failed to generate embedding for product '{product}': {str(e)}")
-                        no_matches.append({"uploaded": product, "error": str(e)})
+                batch_embeddings = generate_embeddings_in_batches(batch, batch_size=batch_size, max_calls_per_minute=max_calls_per_minute)
 
                 # Skip querying if no embeddings were generated
                 if not batch_embeddings:
@@ -121,6 +147,11 @@ def match_products_with_vector_search_in_batches(
                 logging.error(f"Error processing batch {i // batch_size + 1}: {str(e)}")
                 for product in batch:
                     no_matches.append({"uploaded": product, "error": str(e)})
+
+            # Respect the API rate limit
+            if i + batch_size < len(external_products):
+                logging.info(f"Throttling: Waiting {delay_between_calls} seconds before the next batch...")
+                time.sleep(delay_between_calls)
 
         return {
             "matchedProducts": matched_products,
