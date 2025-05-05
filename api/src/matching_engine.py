@@ -35,7 +35,6 @@ llm = init_chat_model(
     "gemini-2.0-flash-001",
     model_provider="google_vertexai"
 )
-
 def process_semi_confident_matches(uploaded_product, possible_matches):
     """
     Process semi-confident matches using an LLM to determine the most probable match.
@@ -58,6 +57,7 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
     Return the result as a JSON object with the following format:
     {{
         "is_confident": <true/false>,
+        "matched_datapoint_id": <string>,  # The datapoint_id of the matched product
         "reason": <string>
     }}
     """
@@ -72,21 +72,25 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
     try:
         comparison = ProductComparison.model_validate_json(response.content)
         if comparison.is_confident:
-            # Return the most confident match
-            return {
-                "uploaded": uploaded_product,
-                "matchedWith": {
-                    "datapoint_id": possible_matches[0]["datapoint_id"],  # Assuming the first match is the most probable
-                    "long_name": possible_matches[0]["long_name"],
-                    "reason": comparison.reason,
-                },
-            }
-        else:
-            # Return all possible matches if no confident match is found
-            return {
-                "uploaded": uploaded_product,
-                "possibleMatches": possible_matches,
-            }
+            # Find the matched product by its datapoint_id
+            matched_product = next(
+                (match for match in possible_matches if match["datapoint_id"] == comparison.matched_datapoint_id),
+                None
+            )
+            if matched_product:
+                return {
+                    "uploaded": uploaded_product,
+                    "matchedWith": {
+                        "datapoint_id": matched_product["datapoint_id"],
+                        "long_name": matched_product["long_name"],
+                        "reason": comparison.reason,
+                    },
+                }
+        # Return all possible matches if no confident match is found
+        return {
+            "uploaded": uploaded_product,
+            "possibleMatches": possible_matches,
+        }
     except Exception as e:
         logging.error(f"Error processing semi-confident matches: {str(e)}")
         logging.error(f"Invalid LLM response: {response.content}")
