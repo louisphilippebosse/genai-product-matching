@@ -188,3 +188,5 @@ node_modules/
 
 # ignore all .jsonl files
 *.jsonl
+*.json
+*.csv
