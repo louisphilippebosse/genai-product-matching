@@ -134,7 +134,8 @@ def match_products_with_vector_search_in_batches(
                 # Query the Vertex AI Matching Engine
                 logging.info(f"Querying Vertex AI Matching Engine for batch {i // batch_size + 1}.")
                 response = vector_search_client.find_neighbors(request)
-
+                # Log the raw response for debugging
+                logging.info(f"Raw response from Matching Engine: {response}")
                 # Process the responses
                 for product, query_result in zip(batch, response.nearest_neighbors):
                     if query_result.neighbors:
