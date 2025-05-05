@@ -6,4 +6,4 @@ pandas
 google-genai
 langchain
 langchain-community
-langchain-google-vertexai
+langchain-google-genai
