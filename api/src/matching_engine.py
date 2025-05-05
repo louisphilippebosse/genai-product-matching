@@ -8,16 +8,14 @@ from langchain.chat_models import init_chat_model
 from typing import Optional, List
 from pydantic import BaseModel, Field
 
-class ProductSize(BaseModel):
-    """Extracted product size information."""
-    size: Optional[str] = Field(default=None, description="The size of the product (e.g., '3 OZ', '1lb', '12g').")
-    unit: Optional[str] = Field(default=None, description="The unit of measurement (e.g., 'OZ', 'lb', 'g').")
-
 class ProductComparison(BaseModel):
-    """Comparison result between uploaded product and possible match."""
-    is_confident: bool = Field(default=False, description="Whether the match is confident.")
-    reason: Optional[str] = Field(default=None, description="Reason for the confidence decision.")
+    is_confident: bool = Field(alias="is_confident")
+    matched_datapoint_id: Optional[str] = Field(None, alias="matched_datapoint_id")
+    reason: str
 
+    class Config:
+        allow_population_by_field_name = True
+        allow_population_by_alias = True
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -92,37 +90,30 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
         }}
         """
 
-    # Invoke the LLM
     response = llm.invoke(prompt)
+    raw = response.content.strip()
+    if raw.startswith("```") and raw.endswith("```"):
+        raw = raw.strip("`\n")
 
-    # Log the raw response for debugging
-    logging.debug(f"Raw LLM response: {response.content}")
-
-    # Preprocess the response to remove code block markers
-    raw_content = response.content.strip()
-    if raw_content.startswith("```") and raw_content.endswith("```"):
-        raw_content = raw_content.split("\n", 1)[1].rsplit("\n", 1)[0]
-
-    # Parse the response into the ProductComparison schema
     try:
-        data = json.loads(raw_content)
-        comp = ProductComparison(**data)
+        data = json.loads(raw)
+        # Normalize keys to snake_case for Pydantic
+        comp = ProductComparison.model_validate(data)
         if comp.is_confident and comp.matched_datapoint_id:
-            # Find the matched entry
-            match = next(
+            candidate = next(
                 (m for m in possible_matches if m["datapoint_id"] == comp.matched_datapoint_id),
                 None
             )
-            if match:
-                # Return only the matched dict for frontend consistency
+            if candidate:
                 return {
-                    "datapoint_id": match["datapoint_id"],
-                    "long_name": match["long_name"],
+                    "datapoint_id": candidate["datapoint_id"],
+                    "long_name": candidate["long_name"],
                     "reason": comp.reason
                 }
     except Exception as e:
         logging.error(f"Error parsing LLM response: {e}")
-    return None  # No confident match
+    return None
+
     
 def generate_embeddings_in_batches(texts, batch_size=250, max_calls_per_minute=5, retries=3, retry_delay=10):
     """
