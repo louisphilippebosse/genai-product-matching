@@ -2,7 +2,7 @@ import logging
 import time
 from google import genai
 from google.genai.types import EmbedContentConfig
-from google.cloud import aiplatform
+from google.cloud import aiplatform_v1
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -70,22 +70,27 @@ def generate_embeddings_in_batches(texts, batch_size=250, max_calls_per_minute=5
     return embeddings
 
 def match_products_with_vector_search_in_batches(
-    external_products, vertex_ai_endpoint, deployed_index_id, project_id, region, batch_size=250, max_calls_per_minute=5
+    external_products, batch_size=250, max_calls_per_minute=5
 ):
     """
     Match external products to internal products using Vertex AI Matching Engine in batches.
     Args:
         external_products (list): List of external product names.
-        vertex_ai_endpoint (str): Vertex AI Matching Engine endpoint.
-        deployed_index_id (str): Deployed index ID for the Matching Engine.
-        project_id (str): Google Cloud project ID.
-        region (str): Google Cloud region.
         batch_size (int): Number of products to process in each batch.
         max_calls_per_minute (int): Maximum number of API calls allowed per minute.
 
     Returns:
         dict: A dictionary with matched, uncertain, and no matches.
     """
+    # Set variables for the current deployed index
+    API_ENDPOINT = "68284885.northamerica-northeast1-123728674703.vdb.vertexai.goog"
+    INDEX_ENDPOINT = "projects/123728674703/locations/northamerica-northeast1/indexEndpoints/310642821172297728"
+    DEPLOYED_INDEX_ID = "product_matching_deployment"
+
+    # Configure the Vector Search client
+    client_options = {"api_endpoint": API_ENDPOINT}
+    vector_search_client = aiplatform_v1.MatchServiceClient(client_options=client_options)
+
     matched_products = []
     uncertain_matches = []
     no_matches = []
@@ -94,13 +99,6 @@ def match_products_with_vector_search_in_batches(
     delay_between_calls = 60 / max_calls_per_minute
 
     try:
-        logging.info("Initializing Vertex AI client.")
-        aiplatform.init(project=project_id, location=region)
-        index_endpoint = aiplatform.MatchingEngineIndexEndpoint(
-            index_endpoint_name=vertex_ai_endpoint
-        )
-        logging.info("Vertex AI client initialized successfully.")
-
         # Process products in batches
         for i in range(0, len(external_products), batch_size):
             batch = external_products[i:i + batch_size]
@@ -109,26 +107,40 @@ def match_products_with_vector_search_in_batches(
             try:
                 # Generate embeddings for the batch
                 logging.info(f"Generating embeddings for batch {i // batch_size + 1}.")
-                batch_embeddings = generate_embeddings_in_batches(batch, batch_size=batch_size, max_calls_per_minute=max_calls_per_minute)
+                batch_embeddings = generate_embeddings_in_batches(
+                    batch, batch_size=batch_size, max_calls_per_minute=max_calls_per_minute
+                )
 
                 # Skip querying if no embeddings were generated
                 if not batch_embeddings:
                     continue
 
-                # Query the Vertex AI Matching Engine with the batch embeddings
-                logging.info(f"Querying Vertex AI Matching Engine for batch {i // batch_size + 1}.")
-                response = index_endpoint.match(
-                    deployed_index_id=deployed_index_id,
-                    queries=batch_embeddings,
-                    num_neighbors=5,
+                # Build the FindNeighborsRequest
+                queries = [
+                    aiplatform_v1.FindNeighborsRequest.Query(
+                        datapoint=aiplatform_v1.IndexDatapoint(feature_vector=embedding),
+                        neighbor_count=10  # Number of nearest neighbors to retrieve
+                    )
+                    for embedding in batch_embeddings
+                ]
+
+                request = aiplatform_v1.FindNeighborsRequest(
+                    index_endpoint=INDEX_ENDPOINT,
+                    deployed_index_id=DEPLOYED_INDEX_ID,
+                    queries=queries,
+                    return_full_datapoint=False,
                 )
 
+                # Query the Vertex AI Matching Engine
+                logging.info(f"Querying Vertex AI Matching Engine for batch {i // batch_size + 1}.")
+                response = vector_search_client.find_neighbors(request)
+
                 # Process the responses
-                for product, neighbors_response in zip(batch, response):
-                    if neighbors_response and neighbors_response.neighbors:
-                        neighbors = neighbors_response.neighbors
-                        confident_matches = [n.id for n in neighbors if n.distance < 0.1]  # Adjust threshold
-                        semi_confident_matches = [n.id for n in neighbors if 0.1 <= n.distance < 0.3]
+                for product, query_result in zip(batch, response.nearest_neighbors):
+                    if query_result.neighbors:
+                        neighbors = query_result.neighbors
+                        confident_matches = [n.datapoint.datapoint_id for n in neighbors if n.distance < 0.1]
+                        semi_confident_matches = [n.datapoint.datapoint_id for n in neighbors if 0.1 <= n.distance < 0.3]
 
                         if confident_matches:
                             matched_products.append({"uploaded": product, "matchedWith": confident_matches[0]})

@@ -63,20 +63,12 @@ def match_product():
         external_products = df["text"].tolist()
         logging.info(f"Extracted {len(external_products)} products from the uploaded file.")
 
-        # Vertex AI Matching Engine parameters
-        vertex_ai_endpoint = "projects/genai-product-matching/locations/northamerica-northeast1/indexEndpoints/310642821172297728"
-        deployed_index_id = "product_matching_deployment"
-        project_id = "genai-product-matching"
-        region = "northamerica-northeast1"
-
         # Call the matching engine
         logging.info("Calling the matching engine...")
         results = match_products_with_vector_search_in_batches(
             external_products=external_products,
-            vertex_ai_endpoint=vertex_ai_endpoint,
-            deployed_index_id=deployed_index_id,
-            project_id=project_id,
-            region=region
+            batch_size=250,
+            max_calls_per_minute=5
         )
         logging.info("Matching engine returned results successfully.")
         return jsonify(results)
