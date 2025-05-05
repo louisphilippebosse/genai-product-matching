@@ -35,6 +35,20 @@ llm = init_chat_model(
 )
 import json
 
+def format_possible_matches_table(possible_matches):
+    """
+    Format the possible matches into a table for the LLM prompt.
+    Args:
+        possible_matches (list): List of possible matches (dicts with 'datapoint_id' and 'long_name').
+
+    Returns:
+        str: A formatted table as a string.
+    """
+    header = "| datapoint_id | long_name                              |\n"
+    separator = "|--------------|----------------------------------------|\n"
+    rows = ''.join([f"| {match['datapoint_id']} | {match['long_name']} |\n" for match in possible_matches])
+    return header + separator + rows
+
 def process_semi_confident_matches(uploaded_product, possible_matches):
     """
     Process semi-confident matches using an LLM to determine the most probable match.
@@ -45,6 +59,7 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
     Returns:
         dict: A confident match if found, or all possible matches if no confident match is determined.
     """
+    possible_matches_table = format_possible_matches_table(possible_matches)
     # Prepare the input for the LLM
     prompt = f"""
         You are an expert in product matching. Your task is to compare the uploaded product with possible matches.
@@ -63,7 +78,7 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
         Possible Matches:
         | datapoint_id | long_name                              |
         |--------------|----------------------------------------|
-        {''.join([f"| {match['datapoint_id']} | {match['long_name']} |\n" for match in possible_matches])}
+        {possible_matches_table}
 
         Here are examples of correct and incorrect matches to guide you:
 
