@@ -49,42 +49,48 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
     """
     # Prepare the input for the LLM
     prompt = f"""
-    You are an expert in product matching. Your task is to compare the uploaded product with possible matches.
-    Extract the product size (e.g., '3 OZ', '1lb', '12g') from both the uploaded product and the possible matches.
-    If the sizes match and the rest of the product details (e.g., flavor, brand, description) are similar, mark it as a confident match.
-    If no confident match is found, explain why.
-    
-    Uploaded Product: {uploaded_product}
-    Possible Matches: {', '.join([match['long_name'] for match in possible_matches])}
-    
-    Here are examples of correct and incorrect matches to guide you:
-    
-    #### Correct Matches:
-    | External_Product_Name                     | Internal_Product_Name                          |
-    |-------------------------------------------|-----------------------------------------------|
-    | DIET LIPTON GREEN TEA W/ CITRUS 20 OZ     | Lipton Diet Green Tea with Citrus (20oz)      |
-    | CH-CHERRY CHS CLAW DANISH 4.25 OZ         | Cloverhill Cherry Cheese Bearclaw Danish (4.25oz) |
-    
-    Reason for Correct Matches:
-    - The product size matches exactly.
-    - The product name and description are similar (e.g., flavor, brand).
-    
-    #### Wrong Matches:
-    | External_Product_Name                     | Internal_Product_Name                          |
-    |-------------------------------------------|-----------------------------------------------|
-    | Cloverhill Cherry Cheese Bearclaw Danish (4.25oz) | Hersheys Almond Milk Choco 1.6 oz           |
-    | COOKIE PEANUT BUTTER 2OZ                  | Famous Amos Peanut Butter Cookie (2oz)        |
-    
-    Reason for Wrong Matches:
-    - The product size or description does not match (e.g., different flavor, brand, or type).
-    
-    Now, compare the uploaded product with the possible matches and return the result as a JSON object with the following format:
-    {{
-        "is_confident": <true/false>,
-        "matched_datapoint_id": <string>,  # The datapoint_id of the matched product
-        "reason": <string>
-    }}
-    """
+        You are an expert in product matching. Your task is to compare the uploaded product with possible matches.
+        Extract the product size (e.g., '3 OZ', '1lb', '12g') from both the uploaded product and the possible matches.
+        A confident match requires **all key details to match exactly**, including:
+        - Product size (e.g., '16oz', '1lb').
+        - Flavor (e.g., 'Strawberry Banana', 'Peach Mango').
+        - Brand (e.g., 'BodyArmor', 'Lipton').
+        - Product line or type (e.g., 'Lyte', 'Diet').
+
+        If there is any difference in these details, it should not be considered a confident match, even if the product size matches.
+
+        Uploaded Product: {uploaded_product}
+        Possible Matches: {', '.join([match['long_name'] for match in possible_matches])}
+
+        Here are examples of correct and incorrect matches to guide you:
+
+        #### Correct Matches:
+        | External_Product_Name                     | Internal_Product_Name                          |
+        |-------------------------------------------|-----------------------------------------------|
+        | DIET LIPTON GREEN TEA W/ CITRUS 20 OZ     | Lipton Diet Green Tea with Citrus (20oz)      |
+        | CH-CHERRY CHS CLAW DANISH 4.25 OZ         | Cloverhill Cherry Cheese Bearclaw Danish (4.25oz) |
+
+        Reason for Correct Matches:
+        - The product size matches exactly.
+        - The product name, flavor, brand, and product line are identical or highly similar.
+
+        #### Wrong Matches:
+        | External_Product_Name                     | Internal_Product_Name                          |
+        |-------------------------------------------|-----------------------------------------------|
+        | BodyArmor Strawberry Banana (16oz)        | BodyArmor Lyte Peach Mango (16oz)             |
+        | COOKIE PEANUT BUTTER 2OZ                  | Famous Amos Peanut Butter Cookie (2oz)        |
+
+        Reason for Wrong Matches:
+        - The product size matches, but the flavor or product line is different (e.g., Strawberry Banana vs Peach Mango).
+        - The product size or description does not match (e.g., different flavor, brand, or type).
+
+        Now, compare the uploaded product with the possible matches and return the result as a JSON object with the following format:
+        {{
+            "is_confident": <true/false>,
+            "matched_datapoint_id": <string>,  # The datapoint_id of the matched product
+            "reason": <string>
+        }}
+        """
 
     # Invoke the LLM
     response = llm.invoke(prompt)
