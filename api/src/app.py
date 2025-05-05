@@ -64,7 +64,7 @@ def match_product():
         logging.info(f"Extracted {len(external_products)} products from the uploaded file.")
 
         # Vertex AI Matching Engine parameters
-        vertex_ai_endpoint = "projects/genai-product-matching/locations/northamerica-northeast1/indexEndpoints/8032064382299013120"
+        vertex_ai_endpoint = "projects/genai-product-matching/locations/northamerica-northeast1/indexEndpoints/310642821172297728"
         deployed_index_id = "product_matching_deployment"
         project_id = "genai-product-matching"
         region = "northamerica-northeast1"
