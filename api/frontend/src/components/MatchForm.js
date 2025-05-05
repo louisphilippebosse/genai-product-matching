@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 function MatchForm() {
     const [file, setFile] = useState(null);
     const [result, setResult] = useState(null);
+    const [loading, setLoading] = useState(false); // Add loading state
 
     const handleFileChange = (event) => {
         setFile(event.target.files[0]);
@@ -19,6 +20,9 @@ function MatchForm() {
         const formData = new FormData();
         formData.append("external", file);
 
+        setLoading(true); // Start loading
+        setResult(null); // Clear previous results
+
         try {
             const response = await fetch("/api/match", {
                 method: "POST",
@@ -34,6 +38,8 @@ function MatchForm() {
         } catch (error) {
             console.error("Error:", error);
             alert("An error occurred while matching the product.");
+        } finally {
+            setLoading(false); // Stop loading
         }
     };
 
@@ -48,10 +54,20 @@ function MatchForm() {
                         onChange={handleFileChange}
                     />
                 </div>
-                <button type="submit" className="btn btn-primary w-100">
-                    Match
+                <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+                    {loading ? "Processing..." : "Match"}
                 </button>
             </form>
+
+            {loading && (
+                <div className="mt-3 text-center">
+                    <div className="spinner-border text-primary" role="status">
+                        <span className="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Processing your request, please wait...</p>
+                </div>
+            )}
+
             {result && (
                 <div className="mt-4">
                     {/* Matched Products Table */}
