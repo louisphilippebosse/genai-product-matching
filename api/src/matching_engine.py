@@ -40,15 +40,18 @@ def generate_embedding(text):
         logging.error(f"Failed to generate embedding for text '{text}': {str(e)}")
         raise
 
-def match_products_with_vector_search(external_products, vertex_ai_endpoint, deployed_index_id, project_id, region):
+def match_products_with_vector_search_in_batches(
+    external_products, vertex_ai_endpoint, deployed_index_id, project_id, region, batch_size=10
+):
     """
-    Match external products to internal products using Vertex AI Matching Engine.
+    Match external products to internal products using Vertex AI Matching Engine in batches.
     Args:
         external_products (list): List of external product names.
         vertex_ai_endpoint (str): Vertex AI Matching Engine endpoint.
         deployed_index_id (str): Deployed index ID for the Matching Engine.
         project_id (str): Google Cloud project ID.
         region (str): Google Cloud region.
+        batch_size (int): Number of products to process in each batch.
 
     Returns:
         dict: A dictionary with matched, uncertain, and no matches.
@@ -65,42 +68,59 @@ def match_products_with_vector_search(external_products, vertex_ai_endpoint, dep
         )
         logging.info("Vertex AI client initialized successfully.")
 
-        for external in external_products:
-            try:
-                logging.info(f"Processing external product: {external}")
-                # Generate embedding for the external product
-                external_embedding = generate_embedding(external)
+        # Process products in batches
+        for i in range(0, len(external_products), batch_size):
+            batch = external_products[i:i + batch_size]
+            logging.info(f"Processing batch {i // batch_size + 1} with {len(batch)} products.")
 
-                # Query the Vertex AI Matching Engine
-                logging.info(f"Querying Vertex AI Matching Engine for product: {external}")
+            try:
+                # Generate embeddings for the batch
+                logging.info(f"Generating embeddings for batch {i // batch_size + 1}.")
+                batch_embeddings = []
+                for product in batch:
+                    try:
+                        embedding = generate_embedding(product)
+                        batch_embeddings.append(embedding)
+                    except Exception as e:
+                        logging.error(f"Failed to generate embedding for product '{product}': {str(e)}")
+                        no_matches.append({"uploaded": product, "error": str(e)})
+
+                # Skip querying if no embeddings were generated
+                if not batch_embeddings:
+                    continue
+
+                # Query the Vertex AI Matching Engine with the batch embeddings
+                logging.info(f"Querying Vertex AI Matching Engine for batch {i // batch_size + 1}.")
                 response = index_endpoint.match(
                     deployed_index_id=deployed_index_id,
-                    queries=[external_embedding],
+                    queries=batch_embeddings,
                     num_neighbors=5,
                 )
 
-                # Process the response
-                if response and response[0].neighbors:
-                    neighbors = response[0].neighbors
-                    confident_matches = [n.id for n in neighbors if n.distance < 0.1]  # Adjust threshold
-                    semi_confident_matches = [n.id for n in neighbors if 0.1 <= n.distance < 0.3]
+                # Process the responses
+                for product, neighbors_response in zip(batch, response):
+                    if neighbors_response and neighbors_response.neighbors:
+                        neighbors = neighbors_response.neighbors
+                        confident_matches = [n.id for n in neighbors if n.distance < 0.1]  # Adjust threshold
+                        semi_confident_matches = [n.id for n in neighbors if 0.1 <= n.distance < 0.3]
 
-                    if confident_matches:
-                        matched_products.append({"uploaded": external, "matchedWith": confident_matches[0]})
-                        logging.info(f"Confident match found for product: {external}")
-                    elif semi_confident_matches:
-                        uncertain_matches.append({"uploaded": external, "possibleMatches": semi_confident_matches})
-                        logging.info(f"Uncertain matches found for product: {external}")
+                        if confident_matches:
+                            matched_products.append({"uploaded": product, "matchedWith": confident_matches[0]})
+                            logging.info(f"Confident match found for product: {product}")
+                        elif semi_confident_matches:
+                            uncertain_matches.append({"uploaded": product, "possibleMatches": semi_confident_matches})
+                            logging.info(f"Uncertain matches found for product: {product}")
+                        else:
+                            no_matches.append({"uploaded": product})
+                            logging.info(f"No matches found for product: {product}")
                     else:
-                        no_matches.append({"uploaded": external})
-                        logging.info(f"No matches found for product: {external}")
-                else:
-                    no_matches.append({"uploaded": external})
-                    logging.info(f"No neighbors found for product: {external}")
+                        no_matches.append({"uploaded": product})
+                        logging.info(f"No neighbors found for product: {product}")
 
             except Exception as e:
-                logging.error(f"Error processing product '{external}': {str(e)}")
-                no_matches.append({"uploaded": external, "error": str(e)})
+                logging.error(f"Error processing batch {i // batch_size + 1}: {str(e)}")
+                for product in batch:
+                    no_matches.append({"uploaded": product, "error": str(e)})
 
         return {
             "matchedProducts": matched_products,
