@@ -91,9 +91,10 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
         """
 
     response = llm.invoke(prompt)
+    # Preprocess the response to remove code block markers
     raw = response.content.strip()
     if raw.startswith("```") and raw.endswith("```"):
-        raw = raw.strip("`\n")
+        raw = raw.split("\n", 1)[1].rsplit("\n", 1)[0]
 
     try:
         data = json.loads(raw)
