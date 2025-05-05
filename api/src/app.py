@@ -2,7 +2,7 @@ import os
 import logging
 from flask import Flask, send_from_directory, request, jsonify
 from data_processing import process_uploaded_file
-from matching_engine import match_products_with_vector_search
+from matching_engine import match_products_with_vector_search_in_batches
 from utils import load_internal_products_from_gcs  # Import the utility function
 
 # Configure logging
@@ -71,7 +71,7 @@ def match_product():
 
         # Call the matching engine
         logging.info("Calling the matching engine...")
-        results = match_products_with_vector_search(
+        results = match_products_with_vector_search_in_batches(
             external_products=external_products,
             vertex_ai_endpoint=vertex_ai_endpoint,
             deployed_index_id=deployed_index_id,
