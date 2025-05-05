@@ -67,7 +67,7 @@ function MatchForm() {
                             {result.matchedProducts.map((product, index) => (
                                 <tr key={`matched-${index}`}>
                                     <td>{product.uploaded}</td>
-                                    <td>{product.matchedWith}</td>
+                                    <td>{product.matchedWith.long_name}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -89,7 +89,7 @@ function MatchForm() {
                                     <td>
                                         {product.possibleMatches.map((match, matchIndex) => (
                                             <span key={matchIndex}>
-                                                {match}
+                                                {match.long_name}
                                                 <br />
                                             </span>
                                         ))}
