@@ -103,7 +103,7 @@ resource "google_vertex_ai_index" "product_matching_index" {
   region       = var.region
 
   metadata {
-    contents_delta_uri = "gs://${google_storage_bucket.data_bucket.name}/contents/internal_products.jsonl"
+    contents_delta_uri = "gs://${google_storage_bucket.data_bucket.name}/contents"
 
     config {
       dimensions = 768  # Adjust based on your embedding size
