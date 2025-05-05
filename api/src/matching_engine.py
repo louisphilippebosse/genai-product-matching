@@ -114,13 +114,11 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
                 None
             )
             if match:
+                # Return only the matched dict for frontend consistency
                 return {
-                    "uploaded": uploaded_product,
-                    "matchedWith": {
-                        "datapoint_id": match["datapoint_id"],
-                        "long_name": match["long_name"],
-                        "reason": comp.reason,
-                    }
+                    "datapoint_id": match["datapoint_id"],
+                    "long_name": match["long_name"],
+                    "reason": comp.reason
                 }
     except Exception as e:
         logging.error(f"Error parsing LLM response: {e}")
@@ -274,7 +272,11 @@ def match_products_with_vector_search_in_batches(
                             logging.info(f"Processing semi-confident matches for product: {product}")
                             result = process_semi_confident_matches(product, semi_confident_matches)
                             if result:
-                                matched_products.append(result)
+                                # Promote to confident using same structure
+                                matched_products.append({
+                                    "uploaded": product,
+                                    "matchedWith": {"datapoint_id": result["datapoint_id"], "long_name": result["long_name"]}
+                                })
                                 logging.info(f"LLM confirmed match: {product}")
                             else:
                                 uncertain_matches.append({"uploaded": product, "possibleMatches": semi_confident_matches})
