@@ -16,7 +16,7 @@ def get_long_name_by_datapoint_id(datapoint_id):
     """
     query = f"""
         SELECT long_name
-        FROM `genai-product-matching.embedding_dataset.table_name`
+        FROM `genai-product-matching.embedding_dataset.embedding`
         WHERE id = '{datapoint_id}'
         LIMIT 1
     """
