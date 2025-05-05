@@ -55,6 +55,8 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
         - Brand (e.g., 'BodyArmor', 'Lipton').
         - Product line or type (e.g., 'Lyte', 'Diet').
 
+        Normalize abbreviations (e.g., 'choc.' to 'chocolate', 'xtra' to 'extra') and handle reordering of words (e.g., '11 oz cans' vs 'Can (11oz)'). Compare the uploaded product with possible matches and return the most semantically similar match.
+
         If there is any difference in these details, it should not be considered a confident match, even if the product size matches.
 
         Uploaded Product: {uploaded_product}
@@ -91,21 +93,25 @@ def process_semi_confident_matches(uploaded_product, possible_matches):
         """
 
     response = llm.invoke(prompt)
+    logging.info(f"LLM response: {response.content}")
     # Preprocess the response to remove code block markers
     raw = response.content.strip()
     if raw.startswith("```") and raw.endswith("```"):
         raw = raw.split("\n", 1)[1].rsplit("\n", 1)[0]
-
+    logging.info(f"Raw LLM response: {raw}")    
     try:
         data = json.loads(raw)
         # Normalize keys to snake_case for Pydantic
         comp = ProductComparison.model_validate(data)
         if comp.is_confident and comp.matched_datapoint_id:
+            logging.info(f"Confident match found: {comp.matched_datapoint_id}")
             candidate = next(
                 (m for m in possible_matches if m["datapoint_id"] == comp.matched_datapoint_id),
                 None
             )
             if candidate:
+                # Return the matched product details
+                logging.info(f"Confident match found: {candidate['long_name']}")
                 return {
                     "datapoint_id": candidate["datapoint_id"],
                     "long_name": candidate["long_name"],
