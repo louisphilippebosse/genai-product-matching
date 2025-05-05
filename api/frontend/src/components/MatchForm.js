@@ -52,7 +52,11 @@ function MatchForm() {
                         name="external"
                         className="form-control"
                         onChange={handleFileChange}
+                        accept=".csv" // Restrict file type to CSV
                     />
+                    <small className="text-muted">
+                        Please upload a CSV file with only one column and a header.
+                    </small>
                 </div>
                 <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                     {loading ? "Processing..." : "Match"}
